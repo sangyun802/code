@@ -1,11 +1,21 @@
 module PCcounter(
-    input[15:0] current_address,
     input jump,
     input [11:0] target_address,
-    output [15:0] next_address
+    input clk,
+    input reset_n,
+    output [15:0]PC
 );
-    wire[15:0] immediate_address;
-    assign immediate_address=current_address+1;
-    assign next_address=(jump)?{immediate_address[15:12], target_address}:immediate_address;
+    reg[15:0] PC;
+
+    always@(posedge clk) begin
+        //reset
+        if(!reset_n) begin
+            PC<=-1;
+        end
+        //PC change
+        else begin
+            PC<=(jump)?{PC[15:12], target_address}:(PC+1);
+        end
+    end
 
 endmodule

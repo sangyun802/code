@@ -25,45 +25,63 @@ module cpu (
 );
 
     reg readM;
-    reg [`WORD_SIZE-1:0] address;
     reg [`WORD_SIZE-1:0] num_inst;
-    
     reg [`WORD_SIZE-1:0] instruction;
-    //reg [`WORD_SIZE-1:0] output_port;
-
-    wire[`WORD_SIZE-1:0] next_address;
     
     wire[3:0] opcode;
-    wire regdest, jump, alusrc, regwrite;
+    wire[5:0] funct;
+    wire regdest, jump, alusrc1, alusrc2, regwrite, mem_out;
     wire[3:0] aluop;
 
   // ... fill in the rest of the code
   always@(posedge clk) begin
+    //reset
       if(!reset_n) begin
         readM<=0;
-        address<=0;
-        num_inst<=0;
-        //output_port<=0;
+        num_inst<=-1;
+        instruction<=16'hf000;
       end
       else begin
-        readM<=1;
+        readM<=1;                 //start readm
         num_inst<=num_inst+1;
         end
   end
 
- always@(inputReady) begin
-    readM<=0;
-    if(inputReady==1)begin
-        instruction<=data;
-    end
-    if(inputReady==0)begin
-    address<=next_address;
+ always@(posedge inputReady) begin
+    if(reset_n)begin
+        readM<=0;                   //end readm
+        instruction<=data;      //save instruction
     end
  end
 
-  Datapath dp00(address, instruction, regdest, jump, alusrc, regwrite, aluop, inputReady, reset_n, next_address, output_port, opcode);
+  Datapath dp00( 
+    .instruction(instruction), 
+    .regdest(regdest), 
+    .jump(jump), 
+    .alusrc1(alusrc1),
+    .alusrc2(alusrc2), 
+    .regwrite(regwrite), 
+    .aluop(aluop), 
+    .mem_out(mem_out),
+    .clk(clk), 
+    .reset_n(reset_n),
+    .output_port(output_port), 
+    .opcode(opcode),
+    .funct(funct),
+    .PC(address)
+  );
 
-  Control_unit cu00(opcode, regdest, jump, alusrc, regwrite, aluop);
+  Control_unit cu00(
+    .opcode(opcode), 
+    .funct(funct), 
+    .regdest(regdest), 
+    .jump(jump), 
+    .alusrc1(alusrc1),
+    .alusrc2(alusrc2), 
+    .regwrite(regwrite), 
+    .aluop(aluop),
+    .mem_out(mem_out)
+  );
 
 
 endmodule

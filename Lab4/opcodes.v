@@ -9,6 +9,7 @@
 
 `define FUNC_WWD 6'd28
 
+
 `define OPCODE_ADI 4'd4
 `define OPCODE_ORI 4'd5
 `define OPCODE_LHI 4'd6
@@ -22,3 +23,25 @@
 `define OPCODE_JAL 4'd10
 
 `define OPCODE_RTYPE 4'd15
+
+//For aluop
+
+//Arithmetic
+`define OP_ADD  4'b0000
+`define OP_SUB  4'b0001
+//Bitwise Boolean operation
+`define	OP_ID	4'b1000
+`define	OP_NAND	4'b1001
+`define	OP_NOR	4'b1010
+`define	OP_XNOR	4'b1011
+`define	OP_NOT	4'b1100
+`define	OP_AND	4'b1101
+`define	OP_OR	4'b1110
+`define	OP_XOR	4'b1111
+//Shifting
+`define	OP_LRS	4'b0010
+`define	OP_ARS	4'b0011
+`define	OP_RR	4'b0100
+`define	OP_LLS	4'b0101
+`define	OP_ALS	4'b0110
+`define	OP_RL	4'b0111
