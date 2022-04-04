@@ -20,9 +20,7 @@ module RF(
     assign read_data1=registers[read_register1];
     assign read_data2=registers[read_register2];
     
-    
-    
-    always@(posedge clk) begin
+    always@(*)begin
         //reset
         if(reset_n==0)begin
             registers[0]<=16'h0000;
@@ -30,6 +28,10 @@ module RF(
             registers[2]<=16'h0000;
             registers[3]<=16'h0000;
         end
+    end
+    
+
+    always@(posedge clk) begin
         //write data
         if( write & reset_n )begin
             registers[write_register]<=write_data;

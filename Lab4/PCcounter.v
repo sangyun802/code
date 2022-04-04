@@ -7,13 +7,15 @@ module PCcounter(
 );
     reg[15:0] PC;
 
-    always@(posedge clk) begin
+    always@(*) begin
         //reset
         if(!reset_n) begin
             PC<=-1;
         end
+    end
+    always@(posedge clk) begin
         //PC change
-        else begin
+        if(reset_n) begin
             PC<=(jump)?{PC[15:12], target_address}:(PC+1);
         end
     end

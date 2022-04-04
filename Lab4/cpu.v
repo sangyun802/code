@@ -34,17 +34,21 @@ module cpu (
     wire[3:0] aluop;
 
   // ... fill in the rest of the code
-  always@(posedge clk) begin
-    //reset
+  
+  always@(*)begin
+      //reset
       if(!reset_n) begin
         readM<=0;
         num_inst<=-1;
-        instruction<=16'hf000;
+        instruction<=16'h4000;  //ADI $0, $0, 0 (reset instruction)
       end
-      else begin
+  end
+
+  always@(posedge clk) begin
+      if(reset_n) begin
         readM<=1;                 //start readm
         num_inst<=num_inst+1;
-        end
+      end
   end
 
  always@(posedge inputReady) begin
