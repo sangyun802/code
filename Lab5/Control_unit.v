@@ -10,6 +10,7 @@ module Control_unit(
     input [3:0] opcode,
     input [5:0] funct,
     input clk,
+    input reset_n;
     output reg PCWriteCond,
     output reg PCWrite,
     output reg IorD,
@@ -24,8 +25,46 @@ module Control_unit(
     output reg [3:0]ALUOP,
     output reg [1:0] PCSource
 );
-    reg[1:0] current_state, next_state;
+    reg[2:0] current_state, next_state;
     always@(*) begin
+        case(current_state):
+            `IF: next_state=`ID;
+            `ID: begin
+                case(opcode):
+                    `OPCODE_RType: begin
+                        casex(funct):
+                            6'b01xxx: next_state=`ID;
+                            default: next_state=`EX;
+                        endcase
+                    end
+                    `OPCODE_JAL: next_state=`ID;
+                    `OPCODE_JMP: next_state=`ID;
+                    default: next_state=`EX;
+                endcase
+            end
+            `EX: begin
+                case(opcode):
+                    `OPCODE_RType: begin
+                        casex(funct):
+                            6'b000xx: next_state=`ID;
+                            default: next_state=`WB;
+                        endcase
+                    end
+                    `OPCODE_ADI: next_state=`WB;
+                    `OPCODE_ORI: next_state=`WB;
+                    `OPCODE_LHI: next_state=`WB;
+                    default: next_state=`MEM;
+                endcase
+            end
+            `MEM: begin
+                case(opcode):
+                    `OPCODE_SWD: next_state=`ID;
+                    `OPCODE_LWD: next_state=`EX;
+                endcase
+            end
+            `WB: next_state=`ID;
+            end
+        endcase
         case(current_state)
             `IF: begin IRWrite=1; MemRead=1; MemWrite=0; IorD=0; end
             `ID: begin
@@ -228,4 +267,16 @@ module Control_unit(
             end
     end
     
+    always@(*) begin
+        if(!reset_n)begin
+            current_state=`ID;
+            next_state=`ID;
+        end
+    end
+
+    always@(posedge clk) begin
+        if(reset_n)begin
+            current_state<=next_state;
+        end
+    end
 endmodule
