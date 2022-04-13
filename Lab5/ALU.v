@@ -8,8 +8,8 @@ module ALU(
     output branch_condition, //output
     output Cout
 );
-    reg [15:0] C;
-    reg Cout;
+    reg [15:0] ALU_result;
+    reg Cout, branch_condition;
     always@(*) begin
         //initialize Cout=0
         Cout=0;
@@ -21,10 +21,10 @@ module ALU(
             
             `OP_ID:ALU_result=A;     //Identity (LHI))
                         
-            `OP_BNE: begin branch_condition=(A!=B); ALU_result=A+B; end //BNE
-            `OP_BEQ: begin branch_condition=(A==B); ALU_result=A+B; end //BEQ
-            `OP_BGZ: begin branch_condition=(A>0); ALU_result=A+B; end //BGZ
-            `OP_BLZ: begin branch_condition=(A<0); ALU_result=A+B; end //BLZ
+            `OP_BNE: branch_condition=(A!=B);  //BNE
+            `OP_BEQ: branch_condition=(A==B);  //BEQ
+            `OP_BGZ: branch_condition=($signed(A)>0); //BGZ
+            `OP_BLZ: branch_condition=($signed(A)<0); //BLZ
 
             `OP_TCP: ALU_result=~A+1;    //TCP
 

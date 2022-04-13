@@ -1,4 +1,4 @@
-
+`timescale 1ns/100ps
 `define WORD_SIZE 16                    //register size
 `define NUM_REG 4                       //number of register
 
