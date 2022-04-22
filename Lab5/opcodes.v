@@ -23,7 +23,7 @@
 `define OPCODE_BLZ 4'd3
 `define OPCODE_JMP 4'd9
 `define OPCODE_JAL 4'd10
-
+//for Rtype
 `define OPCODE_RType 4'd15
 
 //For aluop

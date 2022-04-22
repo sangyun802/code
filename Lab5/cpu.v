@@ -28,8 +28,9 @@ module cpu (
     wire[15:0] Memwritedata;
 
     always@(*)begin
+        //reset
         if(!reset_n) begin
-            instruction=16'h9000;
+            instruction=16'h9000;       //JMP to 0
             num_inst=-1;
         end
     end
@@ -43,14 +44,67 @@ module cpu (
     end
 
     always@(posedge inputReady)begin
+        //data fetch
         if(reset_n) begin
             instruction<=data;
             Memreaddata<=data;
         end
     end
     
-    assign data=writeM?Memwritedata:16'bz;
+    assign data=writeM?Memwritedata:16'bz;      //input data for memory
     
-    Datapath Dp00(instruction, Memreaddata, clk, reset_n, PCWriteCond, PCWrite, IorD, readM, writeM, MemtoReg, IRWrite, RegDst, Regwrite, ALUsrcA, ALUsrcB, ALUOP, PCSource, Memout, output_port, opcode, funct, address, Memwritedata);
-    Control_unit Cu00(opcode, funct, clk, reset_n, PCWriteCond, PCWrite, IorD, readM, writeM, MemtoReg, IRWrite, RegDst, Regwrite, ALUsrcA, ALUsrcB, ALUOP, PCSource, Memout, is_halted, current_state);
+    Datapath Dp00(
+        instruction, 
+        Memreaddata, 
+        clk, 
+        reset_n,
+        //output from control unit 
+        PCWriteCond, 
+        PCWrite, 
+        IorD, 
+        readM, 
+        writeM, 
+        MemtoReg, 
+        IRWrite, 
+        RegDst, 
+        Regwrite, 
+        ALUsrcA, 
+        ALUsrcB, 
+        ALUOP, 
+        PCSource, 
+        Memout, 
+        //WWD
+        output_port, 
+        //input to control unit
+        opcode, 
+        funct, 
+        address, 
+        Memwritedata
+    );
+    Control_unit Cu00(
+        //output from Datapath
+        opcode, 
+        funct,
+
+        clk, 
+        reset_n,
+        //input to Datapath 
+        PCWriteCond, 
+        PCWrite, 
+        IorD, 
+        readM, 
+        writeM, 
+        MemtoReg, 
+        IRWrite, 
+        RegDst, 
+        Regwrite, 
+        ALUsrcA, 
+        ALUsrcB, 
+        ALUOP, 
+        PCSource, 
+        Memout, 
+        is_halted,
+         
+        current_state
+    );
 endmodule
