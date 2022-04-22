@@ -8,7 +8,7 @@ module Datapath(
     input IorD,
     input MemRead,
     input MemWrite,
-    input MemtoReg,
+    input [1:0] MemtoReg,
     input IRWrite,
     input [1:0]RegDst,
     input Regwrite,
@@ -54,12 +54,11 @@ module Datapath(
 
     reg [15:0] write_data;
     always@(*)begin
-        if(MemtoReg)begin
-            write_data=Memreaddata;
-        end
-        else begin
-            write_data=ALUout;
-        end
+        case(MemtoReg)
+            2'b00: write_data=ALUout;
+            2'b01: write_data=Memreaddata;
+            2'b10: write_data=PC;
+         endcase
     end
     wire[15:0] read_data1, read_data2;   //rs, rt
     
@@ -117,7 +116,7 @@ module Datapath(
         case(PCSource)
             2'b00:next_PC=ALU_result;
             2'b01:next_PC=jump_address;
-            2'b10:next_PC=PC+signextend_im;
+            2'b10:next_PC=ALUout;
             2'b11:next_PC=read_data1;
         endcase
     end

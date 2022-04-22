@@ -18,8 +18,8 @@ module cpu (
     output is_halted // 1 if the cpu is halted
 );
     // ... fill in the rest of the code
-    wire PCWriteCond, PCWrite, IorD, MemtoReg, IRWrite, Regwrite, Memout;
-    wire[1:0] RegDst, ALUsrcA, ALUsrcB, PCSource;
+    wire PCWriteCond, PCWrite, IorD, IRWrite, Regwrite, Memout;
+    wire[1:0] RegDst, ALUsrcA, ALUsrcB, PCSource, MemtoReg;
     wire[3:0] ALUOP, opcode; 
     wire[5:0] funct;
     wire[2:0] current_state;
