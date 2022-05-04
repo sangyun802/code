@@ -93,9 +93,9 @@ module Control_unit(
                     IorD=0; 
                     Regwrite=0;
                     PCWrite=1;
-                    ALUOP=`OP_ADD;
-                    ALUsrcA=2'b00;
-                    ALUsrcB=2'b01;
+                    ALUOP=`OP_ADD;      //PC+1
+                    ALUsrcA=2'b00;      //PC
+                    ALUsrcB=2'b01;      //1
                     PCSource=2'b00;
                     PCWriteCond=0;
                     Memout=0;
@@ -104,12 +104,12 @@ module Control_unit(
                 `ID: begin //ALUout<=PC+sign-extended_immediate
                     PCWriteCond=0;
                     ALUOP=`OP_ADD;
-                    ALUsrcA=2'b00;
-                    ALUsrcB=2'b10;
+                    ALUsrcA=2'b00;      //PC
+                    ALUsrcB=2'b10;      //signextend immediate
                     MemWrite=0;
                     IRWrite=0;
                     MemRead=0;
-                    IorD=0;
+                    IorD=0;             //don't care
                     case(opcode)    //determine jump, WWD, HLT output
                         `OPCODE_RType: begin
                             case(funct)
@@ -117,7 +117,7 @@ module Control_unit(
                                 PCWrite=1; 
                                 RegDst=2'b01; 
                                 Regwrite=0;
-                                PCSource=2'b11;
+                                PCSource=2'b11;     //jump address(rs)
                                 is_halted=0;
                                 Memout=0;
                                 MemtoReg=2'b00;
@@ -126,7 +126,7 @@ module Control_unit(
                                 PCWrite=1;
                                 RegDst=2'b10;   //write register $2;
                                 Regwrite=1;
-                                PCSource=2'b11;
+                                PCSource=2'b11; //jump address(rs)
                                 is_halted=0;
                                 Memout=0;
                                 MemtoReg=2'b10;
@@ -164,7 +164,7 @@ module Control_unit(
                             PCWrite=1;
                             RegDst=2'b00; 
                             Regwrite=0;
-                            PCSource=2'b01;
+                            PCSource=2'b01; //jump address
                             is_halted=0;
                             Memout=0;
                             MemtoReg=2'b00;
@@ -173,7 +173,7 @@ module Control_unit(
                             PCWrite=1;
                             RegDst=2'b10; 
                             Regwrite=1;
-                            PCSource=2'b01;
+                            PCSource=2'b01; //jump address
                             is_halted=0;
                             Memout=0;
                             MemtoReg=2'b10;
@@ -203,8 +203,8 @@ module Control_unit(
                     case(opcode)
                         `OPCODE_RType:begin
                             PCWriteCond=0;
-                            ALUsrcA=2'b01;
-                            ALUsrcB=2'b00;
+                            ALUsrcA=2'b01;      //rs
+                            ALUsrcB=2'b00;      //rt
                             PCSource=2'b00;     //don't care
                             case(funct)
                                 //determine ALU operation by function
@@ -220,8 +220,8 @@ module Control_unit(
                         end
                         `OPCODE_ADI: begin
                             PCWriteCond=0;
-                            ALUsrcA=2'b01;
-                            ALUsrcB=2'b10;
+                            ALUsrcA=2'b01;      //rs
+                            ALUsrcB=2'b10;      //sign extend
                             PCSource=2'b00;     //don't care
                             ALUOP=`OP_ADD;
                         end
@@ -234,50 +234,50 @@ module Control_unit(
                         end
                         `OPCODE_LHI: begin
                             PCWriteCond=0;
-                            ALUsrcA=2'b10;
+                            ALUsrcA=2'b10;      //shift left immediate
                             ALUsrcB=2'b01;      //don't care
                             PCSource=2'b00;     //don't care
                             ALUOP=`OP_ID;
                         end
                         `OPCODE_LWD: begin
                             PCWriteCond=0;
-                            ALUsrcA=2'b01;
-                            ALUsrcB=2'b10;
+                            ALUsrcA=2'b01;      //rs
+                            ALUsrcB=2'b10;      //signextend
                             PCSource=2'b00;     //don't care
                             ALUOP=`OP_ADD;
                         end
                         `OPCODE_SWD: begin
                             PCWriteCond=0;
-                            ALUsrcA=2'b01;
-                            ALUsrcB=2'b10;
+                            ALUsrcA=2'b01;      //rs
+                            ALUsrcB=2'b10;      //signextend
                             PCSource=2'b00;     //don't care
                             ALUOP=`OP_ADD;
                         end
                         `OPCODE_BNE: begin
                             PCWriteCond=1;
-                            ALUsrcA=2'b01;
-                            ALUsrcB=2'b00;
+                            ALUsrcA=2'b01;      //rs
+                            ALUsrcB=2'b00;      //rt
                             PCSource=2'b10;
                             ALUOP=`OP_BNE;
                         end
                         `OPCODE_BEQ: begin
                             PCWriteCond=1;
-                            ALUsrcA=2'b01;
-                            ALUsrcB=2'b00;
+                            ALUsrcA=2'b01;      //rs
+                            ALUsrcB=2'b00;      //rt
                             PCSource=2'b10;
                             ALUOP=`OP_BEQ;
                         end
                         `OPCODE_BGZ: begin
                             PCWriteCond=1;
-                            ALUsrcA=2'b01;
-                            ALUsrcB=2'b00;
+                            ALUsrcA=2'b01;      //rs
+                            ALUsrcB=2'b00;      //rt
                             PCSource=2'b10;
                             ALUOP=`OP_BGZ;
                         end
                         `OPCODE_BLZ: begin
                             PCWriteCond=1;
-                            ALUsrcA=2'b01;
-                            ALUsrcB=2'b00;
+                            ALUsrcA=2'b01;      //rs
+                            ALUsrcB=2'b00;      //rt
                             PCSource=2'b10;
                             ALUOP=`OP_BLZ;
                         end
