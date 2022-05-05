@@ -187,6 +187,6 @@ assign PCaddoutput=current_PC+1;
 
 wire[15:0] next_PC;
 PCcounter pc00(next_PC, clk, PCwrite, reset_n, current_PC);
-BTB btb00(clk, reset_n, data_stall, jump_stall, flush, current_PC, PCinput, PCSrc, EX_MEM_nextPC,next_PC, IF_ID_no_btb, ID_EX_no_btb, EX_MEM_no_btb);
+BTB btb00(clk, reset_n, data_stall, jump_stall, flush, current_PC, PCinput, PCSrc, EX_MEM_nextPC, EX_MEM_opcode, branch_address, next_PC, IF_ID_no_btb, ID_EX_no_btb, EX_MEM_no_btb);
 
 endmodule

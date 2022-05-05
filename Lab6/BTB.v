@@ -8,6 +8,8 @@ module BTB(
     input[15:0] jumpPC,
     input[1:0] PCsrc,
     input[15:0] EX_MEM_nextPC,
+    input[3:0] EX_MEM_opcode,
+    input[15:0] branch_address,
     output reg [15:0] next_PC,
     output IF_ID_no_btb,
     output ID_EX_no_btb,
@@ -36,6 +38,9 @@ module BTB(
                         next_PC=jumpPC;
                     end
                     else begin
+                        if(EX_MEM_opcode==`OPCODE_BEQ|EX_MEM_opcode==`OPCODE_BNE|EX_MEM_opcode==`OPCODE_BGZ|EX_MEM_opcode==`OPCODE_BLZ)begin
+                            BTB_history[PC-1]=branch_address;
+                        end
                         next_PC=PC;
                     end                
                 end
