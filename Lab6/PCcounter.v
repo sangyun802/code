@@ -1,4 +1,3 @@
-`timescale 1ns/100ps
 module PCcounter(
     input [15:0] next_PC,
     input clk,
@@ -11,14 +10,14 @@ module PCcounter(
     always@(*)begin
         //reset
         if(!reset_n) begin
-            PC<=0;
+            PC<=16'h0000;
             
         end
     end
     always@(posedge clk) begin
         //PC update
         if(reset_n)begin
-            if(PCWrite) begin
+            if(PCwrite) begin
                 PC<=next_PC;
             end
         end

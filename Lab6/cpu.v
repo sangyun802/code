@@ -24,10 +24,10 @@ module cpu(
         output is_halted
 );
         // TODO : Implement your multi-cycle CPU!
-        reg [`WORD_SIZE-1:0] num_inst, Imemdata, Dmemdata;
-        wire clk, reset_n, ALUsrcA, ALUsrcB, d_readM, d_writeM, i_readM, i_writeM, PCwrite, RegWrite, output_signal, flush, data_stall, jump_stall, no_btb, branch_condition;
+        reg [`WORD_SIZE-1:0] num_inst;
+        wire ALUsrcA, ALUsrcB, d_readM, d_writeM, i_readM, i_writeM, PCwrite, RegWrite, output_signal, flush, data_stall, jump_stall, IF_ID_no_btb, ID_EX_no_btb, EX_MEM_no_btb, branch_condition;
         wire[15:0] EX_MEM_rt_data;
-        wire[1:0] RegDst, MEMtoReg, PCSrc;
+        wire[1:0] RegDst, MEMtoReg, PCSrc, RegDst_output, rs, rt, EX_MEM_write_register, MEM_WB_write_register;
         wire[3:0] ALUop, opcode, ID_EX_opcode, EX_MEM_opcode, MEM_WB_opcode;
         wire[5:0] funct, ID_EX_funct, EX_MEM_funct, MEM_WB_funct;
 
@@ -36,14 +36,8 @@ module cpu(
                         num_inst<=0;
                 end
         end
-        always@(posedge clk)begin
+        always@(posedge Clk)begin
                 if(Reset_N)begin
-                        if(i_readM)begin
-                                instruction<=i_data;
-                        end
-                        if(d_readM)begin
-                                Dmemdata<=d_data;
-                        end
                         if(MEM_WB_opcode!=`OPCODE_Bubble)begin
                                 num_inst<=num_inst+1;
                         end
@@ -51,10 +45,10 @@ module cpu(
         end
         assign d_data=d_writeM?EX_MEM_rt_data:16'bz; 
         Datapath dp00(
-                clk,
-                reset_n,
-                Imemdata,
-                Dmemdata,
+                Clk,
+                Reset_N,
+                i_data,
+                d_data,
                 RegDst,
                 ALUsrcA,
                 ALUsrcB,
@@ -74,20 +68,29 @@ module cpu(
                 ID_EX_opcode,
                 EX_MEM_opcode,
                 MEM_WB_opcode,
-                no_btb,
+                IF_ID_no_btb,
+                ID_EX_no_btb,
+                EX_MEM_no_btb,
                 funct,
                 ID_EX_funct,
                 EX_MEM_funct,
                 MEM_WB_funct,
                 branch_condition,
+                RegDst_output, //wire from RegDst mux to EX_MEM_write_register
+                rs,             //after decode
+                rt,             //after decode
+                EX_MEM_write_register,
+                MEM_WB_write_register,
                 //Instruction memory
                 i_address,              //input address to Instruction memory
                 //Data memory
                 d_address,  //input address to Data memory
-                EX_MEM_rt_data     //input data to Data memory
+                EX_MEM_rt_data,     //input data to Data memory
+                output_port
         );
 
         Control_unit cu00(
+                Reset_N,
                 opcode,
                 ID_EX_opcode,
                 EX_MEM_opcode,
@@ -97,7 +100,14 @@ module cpu(
                 EX_MEM_funct,
                 MEM_WB_funct,
                 branch_condition,
-                no_btb,
+                IF_ID_no_btb,
+                ID_EX_no_btb,
+                EX_MEM_no_btb,
+                RegDst_output, //wire from RegDst mux to EX_MEM_write_register
+                rs,             //after decode
+                rt,             //after decode
+                EX_MEM_write_register,
+                MEM_WB_write_register,
                 i_readM,
                 i_writeM,
                 RegDst,

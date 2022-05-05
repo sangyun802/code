@@ -1,5 +1,5 @@
-//HLT, WWD not yet
 module Control_unit(
+    input reset_n,
     input[3:0] opcode,
     input[3:0] ID_EX_opcode,
     input[3:0] EX_MEM_opcode,
@@ -9,8 +9,15 @@ module Control_unit(
     input[5:0] EX_MEM_funct,
     input[5:0] MEM_WB_funct,
     input branch_condition,
-    input no_btb,
-    output reg i_readM,
+    input IF_ID_no_btb,
+    input ID_EX_no_btb,
+    input EX_MEM_no_btb,
+    input[1:0] RegDst_output, //wire from RegDst mux to EX_MEM_write_register
+    input[1:0] rs,             //after decode
+    input[1:0] rt,             //after decode
+    input[1:0] EX_MEM_write_register,
+    input[1:0] MEM_WB_write_register,
+    output i_readM,
     output i_writeM,
     output reg[1:0] RegDst,
     output reg ALUsrcA,
@@ -24,11 +31,12 @@ module Control_unit(
     output reg [1:0] PCSrc,
     output reg is_halted,   //HLT
     output reg output_signal, //WWD
-    output reg flush,
+    output flush,
     output reg data_stall,  //data hazard
     output reg jump_stall   //control hazard
 );
     assign i_writeM=0;
+    assign i_readM=1;
     reg PCwriteCond;
     wire branch_jump=PCwriteCond&branch_condition; //branch taken or not taken
 
@@ -90,11 +98,11 @@ module Control_unit(
             end
             `OPCODE_BGZ: begin
                 ALUsrcA=0;
-                ALUop=`OP_BEQ;
+                ALUop=`OP_BGZ;
             end
             `OPCODE_BLZ: begin
                 ALUsrcA=0;
-                ALUop=`OP_BEQ;
+                ALUop=`OP_BLZ;
             end
             `OPCODE_BNE: begin
                 ALUsrcA=0;
@@ -131,17 +139,19 @@ module Control_unit(
                 d_readM=1;
                 d_writeM=0;
                 PCwriteCond=0;
+                PCSrc=2'b00;
             end
             `OPCODE_SWD:begin
                 d_readM=0;
                 d_writeM=1;
                 PCwriteCond=0;
+                PCSrc=2'b00;
             end
             4'b00xx:begin   //bne, beq, blz, bgz
                 d_readM=0;
                 d_writeM=0;
                 PCwriteCond=1;
-                PCSrc={0, branch_jump};
+                PCSrc={1'b0, branch_jump};
             end
             `OPCODE_JMP:begin
                 d_readM=0;
@@ -237,12 +247,11 @@ module Control_unit(
     end
 
     //flush
-    assign flush=(~branch_jump)&PCwriteCond;
+    assign flush=(~branch_jump)&PCwriteCond&(!jump_stall);
     //if jump_instruction exist in pipeline
-    wire jump_instruction=
-                        (opcode==`OPCODE_JMP)|(opcode==`OPCODE_JAL)|(opcode==`OPCODE_BEQ)|(opcode==`OPCODE_BGZ)|(opcode==`OPCODE_BLZ)|(opcode==`OPCODE_BNE)
-                      |(ID_EX_opcode==`OPCODE_JMP)|(ID_EX_opcode==`OPCODE_JAL)|(ID_EX_opcode==`OPCODE_BEQ)|(ID_EX_opcode==`OPCODE_BGZ)|(ID_EX_opcode==`OPCODE_BLZ)|(ID_EX_opcode==`OPCODE_BNE)
-                      |(EX_MEM_opcode==`OPCODE_JMP)|(EX_MEM_opcode==`OPCODE_JAL)|(EX_MEM_opcode==`OPCODE_BEQ)|(EX_MEM_opcode==`OPCODE_BGZ)|(EX_MEM_opcode==`OPCODE_BLZ)|(EX_MEM_opcode==`OPCODE_BNE);
+    wire jump_instruction=(opcode==`OPCODE_JMP)|(opcode==`OPCODE_JAL)|(opcode==`OPCODE_BEQ)|(opcode==`OPCODE_BGZ)|(opcode==`OPCODE_BLZ)|(opcode==`OPCODE_BNE);
+    wire ID_EX_jump_instruction=(ID_EX_opcode==`OPCODE_JMP)|(ID_EX_opcode==`OPCODE_JAL)|(ID_EX_opcode==`OPCODE_BEQ)|(ID_EX_opcode==`OPCODE_BGZ)|(ID_EX_opcode==`OPCODE_BLZ)|(ID_EX_opcode==`OPCODE_BNE);
+    wire EX_MEM_jump_instruction=(EX_MEM_opcode==`OPCODE_JMP)|(EX_MEM_opcode==`OPCODE_JAL)|(EX_MEM_opcode==`OPCODE_BEQ)|(EX_MEM_opcode==`OPCODE_BGZ)|(EX_MEM_opcode==`OPCODE_BLZ)|(EX_MEM_opcode==`OPCODE_BNE); 
     
     wire use_rs=((opcode==`OPCODE_Rtype)&(funct!=`FUNC_HLT))
                 |(opcode==`OPCODE_ADI)|(opcode==`OPCODE_ORI)|(opcode==`OPCODE_LWD)|(opcode==`OPCODE_SWD)
@@ -257,19 +266,21 @@ module Control_unit(
                                 |(EX_MEM_opcode==`OPCODE_ADI)|(EX_MEM_opcode==`OPCODE_JAL)|(EX_MEM_opcode==`OPCODE_LHI)|(EX_MEM_opcode==`OPCODE_LWD)|(EX_MEM_opcode==`OPCODE_ORI);
     wire register_write_inst_WB=((MEM_WB_opcode==`OPCODE_Rtype)&((MEM_WB_funct!=`FUNC_WWD)&(MEM_WB_funct!=`FUNC_HLT)))
                                |(MEM_WB_opcode==`OPCODE_ADI)|(MEM_WB_opcode==`OPCODE_JAL)|(MEM_WB_opcode==`OPCODE_LHI)|(MEM_WB_opcode==`OPCODE_LWD)|(MEM_WB_opcode==`OPCODE_ORI);
+    
+    wire no_btb=(IF_ID_no_btb&jump_instruction)|(ID_EX_no_btb&ID_EX_jump_instruction)|(EX_MEM_no_btb&EX_MEM_jump_instruction);
     //stall
     always@(*)begin
         //avoid control hazard
-        if((opcode=`OPCODE_Rtype)&((funct==`FUNC_JPR)|(funct==`FUNC_JRL)))begin
+        if((opcode==`OPCODE_Rtype)&((funct==`FUNC_JPR)|(funct==`FUNC_JRL)))begin
             jump_stall=1;
         end
-        else if((ID_EX_opcode=`OPCODE_Rtype)&((ID_EX_funct==`FUNC_JPR)|(ID_EX_funct==`FUNC_JRL)))begin
+        else if((ID_EX_opcode==`OPCODE_Rtype)&((ID_EX_funct==`FUNC_JPR)|(ID_EX_funct==`FUNC_JRL)))begin
             jump_stall=1;
         end
-        else if((EX_MEM_opcode=`OPCODE_Rtype)&((EX_MEM_funct==`FUNC_JPR)|(EX_MEM_funct==`FUNC_JRL)))begin
+        else if((EX_MEM_opcode==`OPCODE_Rtype)&((EX_MEM_funct==`FUNC_JPR)|(EX_MEM_funct==`FUNC_JRL)))begin
             jump_stall=1;
         end
-        else if(no_btb&jump_instruction) begin
+        else if(no_btb) begin
             jump_stall=1;
         end
         else begin
@@ -289,13 +300,15 @@ module Control_unit(
             data_stall=0;
         end
 
-        if(jump_stall|data_stall)begin
-            PCwrite=1;
-            i_readM=0;
+        if(((IF_ID_no_btb&jump_instruction)|(ID_EX_no_btb&ID_EX_jump_instruction))|data_stall)begin
+            PCwrite=0;
         end
         else begin
-            PCwrite=0;
-            i_readM=1;
+            PCwrite=1;
+        end
+        if(!reset_n)begin
+            data_stall=0;
+            jump_stall=0;
         end
     end
 endmodule
