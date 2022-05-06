@@ -287,13 +287,22 @@ module Control_unit(
             jump_stall=0;
         end
         //avoid data hazard
-        if((use_rs||use_rt)&register_write_inst_EX&((rs==RegDst_output)||(rt==RegDst_output)))begin
+        if(use_rs&register_write_inst_EX&(rs==RegDst_output))begin
             data_stall=1;
         end
-        else if((use_rs||use_rt)&register_write_inst_MEM&((rs==EX_MEM_write_register)||(rt==EX_MEM_write_register)))begin
+        else if(use_rt&register_write_inst_EX&(rt==RegDst_output))begin
             data_stall=1;
         end
-        else if((use_rs||use_rt)&register_write_inst_WB&((rs==MEM_WB_write_register)||(rt==MEM_WB_write_register)))begin
+        else if(use_rs&register_write_inst_MEM&(rs==EX_MEM_write_register))begin
+            data_stall=1;
+        end
+        else if(use_rt&register_write_inst_MEM&(rt==EX_MEM_write_register))begin
+            data_stall=1;
+        end
+        else if(use_rs&register_write_inst_WB&(rs==MEM_WB_write_register))begin
+            data_stall=1;
+        end
+        else if(use_rt&register_write_inst_WB&(rt==MEM_WB_write_register))begin
             data_stall=1;
         end
         else begin
