@@ -15,7 +15,7 @@ module Datapath(
     input RegWrite,
     input [1:0] PCSrc,
     input output_signal, //WWD
-    input flush,
+    //input flush,
     input data_stall,  //data hazard
     input jump_stall,   //control hazard
     //to control unit
@@ -41,7 +41,8 @@ module Datapath(
     //Data memory
     output[15:0] EX_MEM_ALUresult,  //input address to Data memory
     output[15:0] EX_MEM_rt_data,     //input data to Data memory
-    output[15:0] output_port
+    output[15:0] output_port,
+    output flush
 );
 reg[15:0] output_port;
 
@@ -71,6 +72,8 @@ reg [15:0] IF_ID_nextPC, ID_EX_nextPC, EX_MEM_nextPC, MEM_WB_nextPC;
 
 reg [15:0] curr_instruction;                             //for IF/ID latach
 
+
+//wire flush;
 
 wire [1:0] rd;
 wire [7:0] immediate;
@@ -165,16 +168,16 @@ always@(posedge clk) begin
         MEM_read_data<=Dmemdata;
         MEM_WB_rs_data<=EX_MEM_rs_data;
 
-        if(data_stall)begin
+        if(flush)begin
+            curr_instruction<=`bubble_inst;
+            ID_EX_opcode<=`OPCODE_Bubble;
+            EX_MEM_opcode<=`OPCODE_Bubble;
+        end
+        else if(data_stall)begin
             ID_EX_opcode<=`OPCODE_Bubble;
         end
         else if(jump_stall)begin
             curr_instruction<=`bubble_inst;
-        end
-        else if(flush)begin
-            curr_instruction<=`bubble_inst;
-            ID_EX_opcode<=`OPCODE_Bubble;
-            EX_MEM_opcode<=`OPCODE_Bubble;
         end
     end
 end
@@ -187,6 +190,6 @@ assign PCaddoutput=current_PC+1;
 
 wire[15:0] next_PC;
 PCcounter pc00(next_PC, clk, PCwrite, reset_n, current_PC);
-BTB btb00(clk, reset_n, data_stall, jump_stall, flush, current_PC, PCinput, PCSrc, EX_MEM_nextPC, EX_MEM_opcode, branch_address, next_PC, IF_ID_no_btb, ID_EX_no_btb, EX_MEM_no_btb);
+BTB btb00(clk, reset_n, data_stall, jump_stall, current_PC, PCinput, PCSrc, EX_MEM_nextPC, EX_MEM_opcode, EX_MEM_funct, branch_address, next_PC, IF_ID_no_btb, ID_EX_no_btb, EX_MEM_no_btb, flush);
 
 endmodule
