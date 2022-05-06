@@ -25,7 +25,7 @@ module cpu(
 );
         // TODO : Implement your multi-cycle CPU!
         reg [`WORD_SIZE-1:0] num_inst;
-        wire ALUsrcA, ALUsrcB, d_readM, d_writeM, i_readM, i_writeM, PCwrite, RegWrite, output_signal, flush, data_stall, jump_stall, IF_ID_no_btb, ID_EX_no_btb, EX_MEM_no_btb, branch_condition;
+        wire ALUsrcA, ALUsrcB, d_readM, d_writeM, i_readM, i_writeM, PCwrite, RegWrite, output_signal, data_stall, jump_stall, flush, IF_ID_no_btb, ID_EX_no_btb, EX_MEM_no_btb, branch_condition;
         wire[15:0] EX_MEM_rt_data;
         wire[1:0] RegDst, MEMtoReg, PCSrc, RegDst_output, rs, rt, EX_MEM_write_register, MEM_WB_write_register, forward_rs, forward_rt;
         wire[3:0] ALUop, opcode, ID_EX_opcode, EX_MEM_opcode, MEM_WB_opcode;
@@ -60,7 +60,6 @@ module cpu(
                 RegWrite,
                 PCSrc,
                 output_signal, //WWD
-                flush,
                 data_stall,  //data hazard
                 jump_stall,   //control hazard
                 forward_rs,
@@ -88,7 +87,8 @@ module cpu(
                 //Data memory
                 d_address,  //input address to Data memory
                 EX_MEM_rt_data,     //input data to Data memory
-                output_port
+                output_port,
+                flush
         );
 
         Control_unit cu00(
@@ -110,6 +110,7 @@ module cpu(
                 rt,             //after decode
                 EX_MEM_write_register,
                 MEM_WB_write_register,
+                flush,
                 i_readM,
                 i_writeM,
                 RegDst,
@@ -124,9 +125,8 @@ module cpu(
                 PCSrc,
                 is_halted,   //HLT
                 output_signal, //WWD
-                flush,
                 data_stall,  //data hazard
-                jump_stall   //control hazard
+                jump_stall,   //control hazard
                 forward_rs,
                 forward_rt
         );

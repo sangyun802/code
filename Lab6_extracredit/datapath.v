@@ -15,7 +15,7 @@ module Datapath(
     input RegWrite,
     input [1:0] PCSrc,
     input output_signal, //WWD
-    input flush,
+    //input flush,
     input data_stall,  //data hazard
     input jump_stall,   //control hazard
     input[1:0] forward_rs,
@@ -43,7 +43,8 @@ module Datapath(
     //Data memory
     output[15:0] EX_MEM_ALUresult,  //input address to Data memory
     output[15:0] EX_MEM_rt_data,     //input data to Data memory
-    output[15:0] output_port
+    output[15:0] output_port,
+    output flush
 );
 reg[15:0] output_port;
 
@@ -74,6 +75,8 @@ reg [15:0] IF_ID_nextPC, ID_EX_nextPC, EX_MEM_nextPC, MEM_WB_nextPC;
 reg [15:0] curr_instruction;                             //for IF/ID latach
 
 
+//wire flush;
+
 wire [1:0] rd;
 wire [7:0] immediate;
 wire [11:0] target_address;
@@ -91,10 +94,6 @@ wire [15:0] ALUinputA, ALUinputB;    //wire from ALUsrc mux to ALU
 wire [15:0] RF_write_data;           //wire from MEMtoReg mux to RF write data
 wire [15:0] PCinput;                 //wire for PC counter input
 wire [15:0] PCaddoutput;             //wire for PC+1 output
-
-wire[15:0] rs_forward_EX, rs_forward_MEM, rs_forward_WB;
-wire[15:0] rt_forward_EX, rt_forward_MEM, rt_forward_WB;
-
 
 always@(posedge clk)begin
     if(output_signal)begin
@@ -119,22 +118,19 @@ assign PCinput=(PCSrc==2'b00)?PCaddoutput:
                               EX_MEM_rs_data;
 
 wire [15:0] read_data1, read_data2, ALU_result, branch_add_result;  //RF_output1,output2   ALU_output   Branch_jump_output
-
-
 wire branchcond;        //ALU branch output
+wire[15:0] rs_data, rt_data;
+wire[15:0] MEM_stage_forward=(EX_MEM_opcode==`OPCODE_LWD)?Dmemdata:EX_MEM_ALUresult;
+assign rs_data=(forward_rs==2'b00)?read_data1:
+               (forward_rs==2'b01)?ALU_result:
+               (forward_rs==2'b10)?MEM_stage_forward:
+                                   RF_write_data;
 
-wire[15:0] rs_data, rt_data;        //forward_rs, forward_rt mux
-wire[15:0] MEMstage_forward=(EX_MEM_opcode==`OPCODE_LWD)?Dmemdata:EX_MEM_ALUresult;
+assign rt_data=(forward_rt==2'b00)?read_data2:
+               (forward_rt==2'b01)?ALU_result:
+               (forward_rt==2'b10)?MEM_stage_forward:
+                                   RF_write_data;
 
-assign rs_data=(forward_rs==2'b00)? read_data1:
-               (forward_rs==2'b01)? ALU_result:
-               (forward_rs==2'b10)? MEMstage_forward:
-                                    RF_write_data;
-
-assign rt_data=(forward_rt==2'b00)? read_data2:
-               (forward_rt==2'b01)? ALU_result:
-               (forward_rt==2'b10)? MEMstage_forward:
-                                    RF_write_data;
 
 always@(*)begin
     if(!reset_n)begin
@@ -186,16 +182,16 @@ always@(posedge clk) begin
         MEM_read_data<=Dmemdata;
         MEM_WB_rs_data<=EX_MEM_rs_data;
 
-        if(data_stall)begin
+        if(flush)begin
+            curr_instruction<=`bubble_inst;
+            ID_EX_opcode<=`OPCODE_Bubble;
+            EX_MEM_opcode<=`OPCODE_Bubble;
+        end
+        else if(data_stall)begin
             ID_EX_opcode<=`OPCODE_Bubble;
         end
         else if(jump_stall)begin
             curr_instruction<=`bubble_inst;
-        end
-        else if(flush)begin
-            curr_instruction<=`bubble_inst;
-            ID_EX_opcode<=`OPCODE_Bubble;
-            EX_MEM_opcode<=`OPCODE_Bubble;
         end
     end
 end
@@ -208,6 +204,6 @@ assign PCaddoutput=current_PC+1;
 
 wire[15:0] next_PC;
 PCcounter pc00(next_PC, clk, PCwrite, reset_n, current_PC);
-BTB btb00(clk, reset_n, data_stall, jump_stall, flush, current_PC, PCinput, PCSrc, EX_MEM_nextPC, EX_MEM_opcode, branch_address, next_PC, IF_ID_no_btb, ID_EX_no_btb, EX_MEM_no_btb);
+BTB btb00(clk, reset_n, data_stall, jump_stall, current_PC, PCinput, PCSrc, EX_MEM_nextPC, EX_MEM_opcode, EX_MEM_funct, branch_address, next_PC, IF_ID_no_btb, ID_EX_no_btb, EX_MEM_no_btb, flush);
 
 endmodule

@@ -3,21 +3,26 @@ module BTB(
     input reset_n,
     input data_stall,
     input jump_stall,
-    input flush,
+    //input flush,
     input[15:0] PC,
-    input[15:0] jumpPC,
+    input[15:0] PCinput,
     input[1:0] PCsrc,
     input[15:0] EX_MEM_nextPC,
     input[3:0] EX_MEM_opcode,
+    input[5:0] EX_MEM_funct,
     input[15:0] branch_address,
     output reg [15:0] next_PC,
     output IF_ID_no_btb,
     output ID_EX_no_btb,
-    output EX_MEM_no_btb
+    output EX_MEM_no_btb,
+    output flush
 );
     integer count;
-    reg pre_no_btb, IF_no_btb, IF_ID_no_btb, ID_EX_no_btb, EX_MEM_no_btb;
+    reg IF_no_btb, IF_ID_no_btb, ID_EX_no_btb, EX_MEM_no_btb;
     reg[15:0] BTB_history [255:0];
+    reg[15:0] IF_PC_jump, IF_ID_PC_jump, ID_EX_PC_jump, EX_MEM_PC_jump;
+    reg[15:0] IF_predict_address, IF_ID_predict_address, ID_EX_predict_address, EX_MEM_predict_address;
+
     always@(*)begin
         if(!reset_n)begin
             for(count=0;count<256;count=count+1)
@@ -25,17 +30,20 @@ module BTB(
         end
     end
 
+    wire EX_MEM_jump_instruction=(EX_MEM_opcode==`OPCODE_JMP)|(EX_MEM_opcode==`OPCODE_JAL)
+                                |(EX_MEM_opcode==`OPCODE_BEQ)|(EX_MEM_opcode==`OPCODE_BGZ)|(EX_MEM_opcode==`OPCODE_BLZ)|(EX_MEM_opcode==`OPCODE_BNE)
+                                |((EX_MEM_opcode==`OPCODE_Rtype)&((EX_MEM_funct==`FUNC_JPR)|(EX_MEM_funct==`FUNC_JRL)));
+
+    assign flush=EX_MEM_jump_instruction&(EX_MEM_predict_address!=PCinput)&(!jump_stall);
+
     always@(*)begin
         if(reset_n)begin
             if(jump_stall)begin
                 IF_no_btb=0;
                 if(EX_MEM_no_btb)begin
-                    if(PCsrc==2'b10|PCsrc==2'b01)begin
-                        BTB_history[PC-1]=jumpPC;
-                        next_PC=jumpPC;
-                    end
-                    else if(PCsrc==2'b11)begin
-                        next_PC=jumpPC;
+                    if(PCsrc==2'b10|PCsrc==2'b01|PCsrc==2'b11)begin
+                        BTB_history[PC-1]=PCinput;
+                        next_PC=PCinput;
                     end
                     else begin
                         if(EX_MEM_opcode==`OPCODE_BEQ|EX_MEM_opcode==`OPCODE_BNE|EX_MEM_opcode==`OPCODE_BGZ|EX_MEM_opcode==`OPCODE_BLZ)begin
@@ -46,10 +54,18 @@ module BTB(
                 end
             end
             else if(flush)begin
-                next_PC=EX_MEM_nextPC;
+                if(PCsrc==2'b01|PCsrc==2'b10|PCsrc==2'b11) begin
+                    next_PC=PCinput;
+                    BTB_history[EX_MEM_PC_jump]=PCinput;
+                end
+                else begin
+                    next_PC=EX_MEM_nextPC;
+                end
             end
             else if(BTB_history[PC]!=16'h0000) begin
                 next_PC=BTB_history[PC];
+                IF_predict_address=BTB_history[PC];
+                IF_PC_jump=PC;
                 IF_no_btb=0;
             end
             else begin
@@ -63,16 +79,33 @@ module BTB(
             if(!data_stall)begin
                 IF_ID_no_btb<=IF_no_btb;
                 ID_EX_no_btb<=IF_ID_no_btb;
+                IF_ID_predict_address<=IF_predict_address;
+                ID_EX_predict_address<=IF_ID_predict_address;
+                IF_ID_PC_jump<=IF_PC_jump;
+                ID_EX_PC_jump<=IF_ID_PC_jump;
             end
             EX_MEM_no_btb<=ID_EX_no_btb;
+            EX_MEM_predict_address<=ID_EX_predict_address;
+            EX_MEM_PC_jump<=ID_EX_PC_jump;
 
             if(flush)begin
                 IF_no_btb<=0;
                 IF_ID_no_btb<=0;
                 ID_EX_no_btb<=0;
+                EX_MEM_no_btb<=0;
+                IF_predict_address<=16'h0000;
+                IF_ID_predict_address<=16'h0000;
+                ID_EX_predict_address<=16'h0000;
+                EX_MEM_predict_address<=16'h0000;
+                IF_PC_jump<=16'h0000;
+                IF_ID_PC_jump<=16'h0000;
+                ID_EX_PC_jump<=16'h0000;
+                EX_MEM_PC_jump<=16'h0000;
             end
             if(data_stall)begin
                 ID_EX_no_btb<=0;
+                ID_EX_predict_address<=16'h0000;
+                ID_EX_PC_jump<=16'h0000;
             end
     end
 end
