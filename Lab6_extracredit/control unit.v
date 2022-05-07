@@ -34,7 +34,8 @@ module Control_unit(
     output reg output_signal, //WWD
     //output flush,
     output reg data_stall,  //data hazard
-    output reg jump_stall,   //control hazard
+    output jump_stall,   //control hazard
+    //data forward
     output reg [1:0] forward_rs,
     output reg [1:0] forward_rt
 );
@@ -249,8 +250,6 @@ module Control_unit(
         endcase
     end
 
-    //flush
-    //assign flush=(~branch_jump)&PCwriteCond&(!jump_stall);
     //if jump_instruction exist in pipeline
     wire jump_instruction=(opcode==`OPCODE_JMP)|(opcode==`OPCODE_JAL)|(opcode==`OPCODE_BEQ)
                          |(opcode==`OPCODE_BGZ)|(opcode==`OPCODE_BLZ)|(opcode==`OPCODE_BNE)
@@ -261,6 +260,7 @@ module Control_unit(
     wire EX_MEM_jump_instruction=(EX_MEM_opcode==`OPCODE_JMP)|(EX_MEM_opcode==`OPCODE_JAL)
                                 |(EX_MEM_opcode==`OPCODE_BEQ)|(EX_MEM_opcode==`OPCODE_BGZ)|(EX_MEM_opcode==`OPCODE_BLZ)|(EX_MEM_opcode==`OPCODE_BNE)
                                 |((EX_MEM_opcode==`OPCODE_Rtype)&((EX_MEM_funct==`FUNC_JPR)|(EX_MEM_funct==`FUNC_JRL))); 
+    
     
     wire use_rs=((opcode==`OPCODE_Rtype)&(funct!=`FUNC_HLT))
                 |(opcode==`OPCODE_ADI)|(opcode==`OPCODE_ORI)|(opcode==`OPCODE_LWD)|(opcode==`OPCODE_SWD)
@@ -276,18 +276,13 @@ module Control_unit(
     wire register_write_inst_WB=((MEM_WB_opcode==`OPCODE_Rtype)&((MEM_WB_funct!=`FUNC_WWD)&(MEM_WB_funct!=`FUNC_HLT)&(MEM_WB_funct!=`FUNC_JPR)))
                                |(MEM_WB_opcode==`OPCODE_ADI)|(MEM_WB_opcode==`OPCODE_JAL)|(MEM_WB_opcode==`OPCODE_LHI)|(MEM_WB_opcode==`OPCODE_LWD)|(MEM_WB_opcode==`OPCODE_ORI);
     
-    wire no_btb=(IF_ID_no_btb&jump_instruction)|(ID_EX_no_btb&ID_EX_jump_instruction)|(EX_MEM_no_btb&EX_MEM_jump_instruction);
-    //stall
+    //jump stall
+    assign jump_stall=(IF_ID_no_btb&jump_instruction)|(ID_EX_no_btb&ID_EX_jump_instruction)|(EX_MEM_no_btb&EX_MEM_jump_instruction);
+    //data stall
     always@(*)begin
-        //avoid control hazard
-        if(no_btb) begin
-            jump_stall=1;
-        end
-        else begin
-            jump_stall=0;
-        end
         //avoid data hazard
         data_stall=0;
+        //dist(i,j)=1
         if(use_rs&register_write_inst_EX&(rs==RegDst_output))begin
             if(ID_EX_opcode==`OPCODE_LWD)begin
                 data_stall=1;
@@ -296,15 +291,19 @@ module Control_unit(
                 forward_rs=2'b01;
             end
         end
+        //dist(i,j)=2
         else if(use_rs&register_write_inst_MEM&(rs==EX_MEM_write_register))begin
             forward_rs=2'b10;
         end
+        //dist(i,j)=3
         else if(use_rs&register_write_inst_WB&(rs==MEM_WB_write_register))begin
             forward_rs=2'b11;
         end
+        //no data hazard
         else begin
             forward_rs=2'b00;
         end
+        //dist(i,j)=1
         if(use_rt&register_write_inst_EX&(rt==RegDst_output))begin
             if(ID_EX_opcode==`OPCODE_LWD)begin
                 data_stall=1;
@@ -313,12 +312,15 @@ module Control_unit(
                 forward_rt=2'b01;
             end
         end
+        //dist(i,j)=2
         else if(use_rt&register_write_inst_MEM&(rt==EX_MEM_write_register))begin
             forward_rt=2'b10;
         end
+        //dist(i,j)=3
         else if(use_rt&register_write_inst_WB&(rt==MEM_WB_write_register))begin
             forward_rt=2'b11;
         end
+        //no data hazard
         else begin
             forward_rt=2'b00;
         end
@@ -331,7 +333,6 @@ module Control_unit(
         end
         if(!reset_n)begin
             data_stall=0;
-            jump_stall=0;
         end
     end
 endmodule

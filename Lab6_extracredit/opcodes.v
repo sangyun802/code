@@ -26,6 +26,7 @@
 
 `define OPCODE_Rtype 4'd15
 
+//For bubble in flush, stall
 `define OPCODE_Bubble 4'd11
 `define bubble_inst 16'hb000
 

@@ -119,8 +119,11 @@ assign PCinput=(PCSrc==2'b00)?PCaddoutput:
 
 wire [15:0] read_data1, read_data2, ALU_result, branch_add_result;  //RF_output1,output2   ALU_output   Branch_jump_output
 wire branchcond;        //ALU branch output
-wire[15:0] rs_data, rt_data;
+
+wire[15:0] rs_data, rt_data;    //forward mux output
+
 wire[15:0] MEM_stage_forward=(EX_MEM_opcode==`OPCODE_LWD)?Dmemdata:EX_MEM_ALUresult;
+
 assign rs_data=(forward_rs==2'b00)?read_data1:
                (forward_rs==2'b01)?ALU_result:
                (forward_rs==2'b10)?MEM_stage_forward:
@@ -199,10 +202,12 @@ end
 //implement module
 RF rf00(RegWrite, clk, reset_n, rs, rt, MEM_WB_write_register, RF_write_data, read_data1, read_data2);
 ALU alu00(.A(ALUinputA), .B(ALUinputB), .Cin(0), .OP(ALUop), .ALU_result(ALU_result), .branch_condition(branchcond), .Cout());
+
 assign branch_add_result=ID_EX_nextPC+signextend_im;
 assign PCaddoutput=current_PC+1;
 
 wire[15:0] next_PC;
+//implement module
 PCcounter pc00(next_PC, clk, PCwrite, reset_n, current_PC);
 BTB btb00(clk, reset_n, data_stall, jump_stall, current_PC, PCinput, PCSrc, EX_MEM_nextPC, EX_MEM_opcode, EX_MEM_funct, branch_address, next_PC, IF_ID_no_btb, ID_EX_no_btb, EX_MEM_no_btb, flush);
 

@@ -32,10 +32,12 @@ module cpu(
         wire[5:0] funct, ID_EX_funct, EX_MEM_funct, MEM_WB_funct;
 
         always@(*)begin
+                //reset
                 if(!Reset_N)begin
                         num_inst<=0;
                 end
         end
+        
         always@(posedge Clk)begin
                 if(Reset_N)begin
                         if(MEM_WB_opcode!=`OPCODE_Bubble)begin
@@ -43,7 +45,7 @@ module cpu(
                         end
                 end
         end
-        assign d_data=d_writeM?EX_MEM_rt_data:16'bz; 
+        assign d_data=d_writeM?EX_MEM_rt_data:16'bz;    //input data to data memory
         Datapath dp00(
                 Clk,
                 Reset_N,

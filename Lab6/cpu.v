@@ -27,15 +27,17 @@ module cpu(
         reg [`WORD_SIZE-1:0] num_inst;
         wire ALUsrcA, ALUsrcB, d_readM, d_writeM, i_readM, i_writeM, PCwrite, RegWrite, output_signal, data_stall, jump_stall, flush, IF_ID_no_btb, ID_EX_no_btb, EX_MEM_no_btb, branch_condition;
         wire[15:0] EX_MEM_rt_data;
-        wire[1:0] RegDst, MEMtoReg, PCSrc, RegDst_output, rs, rt, EX_MEM_write_register, MEM_WB_write_register;
+        wire[1:0] RegDst, MEMtoReg, PCsrc, RegDst_output, rs, rt, EX_MEM_write_register, MEM_WB_write_register;
         wire[3:0] ALUop, opcode, ID_EX_opcode, EX_MEM_opcode, MEM_WB_opcode;
         wire[5:0] funct, ID_EX_funct, EX_MEM_funct, MEM_WB_funct;
 
+        //reset
         always@(*)begin
                 if(!Reset_N)begin
                         num_inst<=0;
                 end
         end
+
         always@(posedge Clk)begin
                 if(Reset_N)begin
                         if(MEM_WB_opcode!=`OPCODE_Bubble)begin
@@ -43,7 +45,9 @@ module cpu(
                         end
                 end
         end
+        //input data to data memory
         assign d_data=d_writeM?EX_MEM_rt_data:16'bz; 
+
         Datapath dp00(
                 Clk,
                 Reset_N,
@@ -58,7 +62,7 @@ module cpu(
                 PCwrite,
                 MEMtoReg,
                 RegWrite,
-                PCSrc,
+                PCsrc,
                 output_signal, //WWD
                 data_stall,  //data hazard
                 jump_stall,   //control hazard
@@ -120,7 +124,7 @@ module cpu(
                 PCwrite,
                 MEMtoReg,
                 RegWrite,
-                PCSrc,
+                PCsrc,
                 is_halted,   //HLT
                 output_signal, //WWD
                 data_stall,  //data hazard
